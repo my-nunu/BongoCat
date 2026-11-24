@@ -1,0 +1,39 @@
+name: Build Windows (manual)
+
+# Manual Windows x64 build for personal artifacts. Unlike app-release.yml this
+# needs no tag and no signing secrets: the installer is produced without update
+# assets, so it installs but cannot receive update payloads.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-x64:
+    name: Build Windows x64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # rust-toolchain.toml pins the toolchain the workspace compiles with, so the
+      # target has to be installed for that toolchain, not for `stable`.
+      - name: Install the target for the pinned toolchain
+        run: rustup target add x86_64-pc-windows-msvc
+
+      - uses: taiki-e/install-action@just
+
+      - name: Build the installer
+        run: just build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BongoCat-windows-x64
+          path: |
+            target/package/*.exe
+            target/package/*.json
+            target/package/provenance/*
+          if-no-files-found: error
